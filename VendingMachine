@@ -1,0 +1,59 @@
+function vendingMachine(snack, cash) {
+    const snacks = [
+        { name: "Coffee", price: 4.10 },
+        { name: "Tea", price: 1.87 },
+        { name: "chocolate", price: 1.20 },
+        { name: "Chips", prie: 3.60 }
+    ];
+
+
+    for (let i = 0; i < snacks.length; i++) {
+        if (snack === snacks[i].name && cash === snacks[i].price) {
+            switch (snack) {
+                case "Coffee": console.log("Your" + snack + "has been served"); break;
+                case "Tea": console.log("Your" + snack + "has been served"); break;
+                case "chocolate": console.log("Your" + snack + "has been served"); break;
+                case "Chips": console.log("Your" + snack + "has been served"); break;
+            }
+        } else if (snack === snacks[i].name && cash > snacks[i].price) {
+            console.log("Your" + snack + "has been served.");
+            console.log(`Your change ${(snacks[i].price - cash).toFixed(2)}`);
+
+        } else if (cash < snacks[i].price) {
+            console.log("Not enough money");
+        }
+    }
+}
+
+
+
+/*function vendingMachine(snack, cash) {
+    const snacks = [
+        { name: 'Espresso', price: 1 },
+        { name: 'Cappuccino', price: 2.50 },
+        { name: 'Chocolate', price: 2 },
+        { name: 'Potato', price: 3.50 }
+    ];
+
+    const selected_snack = snacks.find(item => item.name === snack);
+
+    if (selected_snack) {
+        if (selected_snack.price === cash) {
+            return `Your ${snack} have been served`;
+        }
+        else {
+            if (selected_snack.price > cash) {
+                return `Insufficient funds. Please insert more cash.`;
+            }
+            else {
+                return `Your ${snack} have been served. Here is your $${cash - selected_snack.price} change.`;
+            }
+        }
+    }
+
+    else {
+        return `${snack} does not exist. Please try again`
+    }
+};
+
+console.log(vendingMachine('Espresso', 12));*/
