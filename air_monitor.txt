@@ -1,0 +1,126 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <DHT.h>
+
+#define FAN_PIN D5
+#define DHTPIN D2
+#define DHTTYPE DHT11
+#define MQ_PIN A0
+
+const char* ssid = "ZTE-EC823A";
+const char* password = "7D475H3H6D";
+
+ESP8266WebServer server(80);
+DHT dht(DHTPIN, DHTTYPE);
+
+bool fanState = false;
+float temperature = 0;
+float humidity = 0;
+int gasValue = 0;
+
+unsigned long previousMillis = 0;
+const long interval = 2000;
+
+// ===== FAN CONTROL HANDLER =====
+void handleFanToggle() {
+  fanState = !fanState;
+  digitalWrite(FAN_PIN, fanState ? HIGH : LOW);
+
+  server.sendHeader("Location", "/");
+  server.send(303);
+}
+
+// ===== HTML PAGE =====
+String getHTML() {
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+  html += "<title>Монитор на въздуха</title>";
+  html += "<meta http-equiv='refresh' content='3'>";
+  html += "<style>body{font-family:Arial;text-align:center;background:#f0f0f0;}";
+  html += "h1{color:#0066cc;} .value{font-size:2.5em;margin:20px;}</style></head><body>";
+
+  html += "<h1>🌬️ Монитор на въздуха</h1>";
+
+  if (isnan(temperature) || isnan(humidity)) {
+    html += "<p style='color:red;'>❌ Грешка с DHT11 сензора!</p>";
+  } else {
+    html += "<p>🌡️ Температура: <span class='value'>" + String(temperature, 1) + " °C</span></p>";
+    html += "<p>💧 Влажност: <span class='value'>" + String(humidity, 1) + " %</span></p>";
+  }
+
+  html += "<p>🧪 Газ (MQ): <span class='value'>" + String(gasValue) + "</span></p>";
+
+  // ===== FAN UI =====
+  html += "<h2>🌀 Вентилатор</h2>";
+  html += "<p>Състояние: <b>";
+  html += (fanState ? "ВКЛЮЧЕН" : "ИЗКЛЮЧЕН");
+  html += "</b></p>";
+
+  html += "<a href='/fan'><button style='font-size:20px;padding:10px 20px;'>";
+  html += (fanState ? "Изключи" : "Включи");
+  html += "</button></a>";
+
+  html += "<p><small>Обновява се автоматично...</small></p>";
+  html += "</body></html>";
+
+  return html;
+}
+
+// ===== ROOT =====
+void handleRoot() {
+  server.send(200, "text/html", getHTML());
+}
+
+// ===== SETUP =====
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  pinMode(FAN_PIN, OUTPUT);
+  digitalWrite(FAN_PIN, LOW);
+
+  dht.begin();
+
+  Serial.println("Свързване към Wi-Fi...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\n✅ Свързан!");
+  Serial.print("IP адрес: ");
+  Serial.println(WiFi.localIP());
+
+  // Web routes
+  server.on("/", handleRoot);
+  server.on("/fan", handleFanToggle);
+
+  server.begin();
+  Serial.println("🌐 Web сървърът е стартиран!");
+
+  // Warmup
+  Serial.println("Загряване на сензорите...");
+  delay(30000);
+}
+
+// ===== LOOP =====
+void loop() {
+  server.handleClient();
+
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    humidity = dht.readHumidity();
+    temperature = dht.readTemperature();
+    gasValue = analogRead(MQ_PIN);
+
+    if (isnan(humidity) || isnan(temperature)) {
+      Serial.println("❌ DHT11 грешка!");
+    } else {
+      Serial.printf("🌡️ %.1f °C  💧 %.1f %%  🧪 %d\n",
+                    temperature, humidity, gasValue);
+    }
+  }
+}
